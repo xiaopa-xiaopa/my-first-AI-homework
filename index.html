@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文档导航中心</title>
+    <style>
+        /* CSS 变量定义 */
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #ffffff;
+            --sidebar-bg: #f8fafc;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --hover-bg: #f1f5f9;
+            --active-bg: #dbeafe;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --sidebar-width: 260px;
+            --transition: all 0.3s ease;
+        }
+
+        /* 重置样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* 移动端菜单按钮 */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 1001;
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: var(--bg-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            transition: var(--transition);
+        }
+
+        .menu-toggle:hover {
+            background: var(--hover-bg);
+        }
+
+        .menu-toggle span {
+            display: block;
+            width: 20px;
+            height: 2px;
+            background: var(--text-primary);
+            border-radius: 2px;
+            transition: var(--transition);
+        }
+
+        .menu-toggle.active span:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .menu-toggle.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .menu-toggle.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(5px, -5px);
+        }
+
+        /* 遮罩层 */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* 左侧导航栏 */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        /* LOGO 区域 */
+        .logo {
+            padding: 24px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-color), #7c3aed);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* 导航列表 */
+        .nav-list {
+            padding: 16px 12px;
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 4px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+            transform: translateX(4px);
+        }
+
+        .nav-link.active {
+            background: var(--active-bg);
+            color: var(--primary-color);
+        }
+
+        .nav-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* 右侧内容区 */
+        .content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            padding: 32px 40px;
+        }
+
+        /* 内容头部 */
+        .content-header {
+            margin-bottom: 32px;
+        }
+
+        .content-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .content-desc {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        /* 文档卡片网格 */
+        .doc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        /* 文档卡片 */
+        .doc-card {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .doc-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-4px);
+        }
+
+        .doc-card-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--active-bg);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+
+        .doc-card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .doc-card-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: flex;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .content {
+                margin-left: 0;
+                padding: 80px 20px 32px;
+            }
+
+            .content-title {
+                font-size: 24px;
+            }
+
+            .doc-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 滚动条样式 */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* 淡入动画 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .doc-card {
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .doc-card:nth-child(1) { animation-delay: 0.05s; }
+        .doc-card:nth-child(2) { animation-delay: 0.1s; }
+        .doc-card:nth-child(3) { animation-delay: 0.15s; }
+        .doc-card:nth-child(4) { animation-delay: 0.2s; }
+        .doc-card:nth-child(5) { animation-delay: 0.25s; }
+        .doc-card:nth-child(6) { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+    <!-- 移动端菜单按钮 -->
+    <button class="menu-toggle" id="menuToggle" aria-label="切换菜单">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <!-- 遮罩层 -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- 左侧导航栏 -->
+    <aside class="sidebar" id="sidebar">
+        <div class="logo">
+            <div class="logo-icon">D</div>
+            <span class="logo-text">文档中心</span>
+        </div>
+        <ul class="nav-list" id="navList">
+            <!-- 导航项将通过 JS 动态生成 -->
+        </ul>
+    </aside>
+
+    <!-- 右侧内容区 -->
+    <main class="content" id="content">
+        <div class="content-header">
+            <h1 class="content-title" id="contentTitle">快速开始</h1>
+            <p class="content-desc" id="contentDesc">欢迎使用文档导航中心，请选择左侧分类浏览相关文档</p>
+        </div>
+        <div class="doc-grid" id="docGrid">
+            <!-- 文档卡片将通过 JS 动态生成 -->
+        </div>
+    </main>
+
+    <script>
+        // 导航数据
+        const navData = [
+            {
+                id: 'getting-started',
+                title: '快速开始',
+                icon: '🚀',
+                desc: '快速了解和使用我们的平台',
+                items: [
+                    { title: '安装指南', desc: '详细的安装步骤和系统要求说明', icon: '📦' },
+                    { title: '基础教程', desc: '从零开始学习基础知识', icon: '📚' },
+                    { title: '快速上手', desc: '5分钟快速体验核心功能', icon: '⚡' },
+                    { title: '常见问题', desc: '新手常见问题的解答汇总', icon: '❓' }
+                ]
+            },
+            {
+                id: 'api-docs',
+                title: 'API 文档',
+                icon: '📖',
+                desc: '完整的 API 接口参考文档',
+                items: [
+                    { title: 'REST API', desc: 'RESTful 接口详细说明', icon: '🔗' },
+                    { title: 'GraphQL', desc: 'GraphQL 查询语言指南', icon: '🔍' },
+                    { title: 'SDK 下载', desc: '多语言 SDK 安装包', icon: '💻' },
+                    { title: '认证授权', desc: 'API 认证与安全机制', icon: '🔐' },
+                    { title: '速率限制', desc: 'API 调用频率限制说明', icon: '⏱️' }
+                ]
+            },
+            {
+                id: 'guides',
+                title: '开发指南',
+                icon: '🛠️',
+                desc: '深入的开发教程和最佳实践',
+                items: [
+                    { title: '项目架构', desc: '系统架构设计详解', icon: '🏗️' },
+                    { title: '代码规范', desc: '团队代码编写规范', icon: '📝' },
+                    { title: '测试指南', desc: '单元测试和集成测试', icon: '🧪' },
+                    { title: '部署流程', desc: '持续集成与部署配置', icon: '🚢' },
+                    { title: '性能优化', desc: '应用性能调优技巧', icon: '📈' },
+                    { title: '安全实践', desc: '应用安全防护指南', icon: '🛡️' }
+                ]
+            },
+            {
+                id: 'components',
+                title: '组件库',
+                icon: '🧩',
+                desc: '可复用的 UI 组件集合',
+                items: [
+                    { title: '基础组件', desc: '按钮、输入框等基础元素', icon: '🔲' },
+                    { title: '表单组件', desc: '复杂的表单控件集合', icon: '📋' },
+                    { title: '数据展示', desc: '表格、图表等数据组件', icon: '📊' },
+                    { title: '反馈组件', desc: '弹窗、提示等交互反馈', icon: '💬' },
+                    { title: '导航组件', desc: '菜单、面包屑等导航元素', icon: '🧭' }
+                ]
+            },
+            {
+                id: 'examples',
+                title: '示例代码',
+                icon: '💡',
+                desc: '实用的代码示例和模板',
+                items: [
+                    { title: 'Hello World', desc: '最简单的入门示例', icon: '👋' },
+                    { title: '用户管理', desc: '完整的用户 CRUD 示例', icon: '👥' },
+                    { title: '数据可视化', desc: '图表和数据展示案例', icon: '📉' },
+                    { title: '实时通信', desc: 'WebSocket 实时消息示例', icon: '📡' },
+                    { title: '文件上传', desc: '大文件分片上传方案', icon: '📤' },
+                    { title: '支付集成', desc: '第三方支付接入示例', icon: '💳' }
+                ]
+            },
+            {
+                id: 'changelog',
+                title: '更新日志',
+                icon: '📋',
+                desc: '版本更新记录和变更说明',
+                items: [
+                    { title: '最新版本', desc: '当前版本的更新内容', icon: '✨' },
+                    { title: '历史版本', desc: '过往版本的变更记录', icon: '📜' },
+                    { title: '迁移指南', desc: '版本升级迁移说明', icon: '🔄' },
+                    { title: '废弃通知', desc: '已废弃功能的替代方案', icon: '⚠️' }
+                ]
+            }
+        ];
+
+        // DOM 元素
+        const menuToggle = document.getElementById('menuToggle');
+        const overlay = document.getElementById('overlay');
+        const sidebar = document.getElementById('sidebar');
+        const navList = document.getElementById('navList');
+        const contentTitle = document.getElementById('contentTitle');
+        const contentDesc = document.getElementById('contentDesc');
+        const docGrid = document.getElementById('docGrid');
+
+        // 当前选中的分类
+        let currentCategory = navData[0].id;
+
+        // 渲染导航列表
+        function renderNavList() {
+            navList.innerHTML = navData.map(item => `
+                <li class="nav-item">
+                    <a class="nav-link ${item.id === currentCategory ? 'active' : ''}" 
+                       data-id="${item.id}">
+                        <span class="nav-icon">${item.icon}</span>
+                        <span>${item.title}</span>
+                    </a>
+                </li>
+            `).join('');
+
+            // 添加点击事件
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    const categoryId = link.dataset.id;
+                    switchCategory(categoryId);
+                    // 移动端关闭菜单
+                    if (window.innerWidth <= 768) {
+                        closeMenu();
+                    }
+                });
+            });
+        }
+
+        // 渲染文档卡片
+        function renderDocCards(categoryId) {
+            const category = navData.find(item => item.id === categoryId);
+            if (!category) return;
+
+            // 更新标题和描述
+            contentTitle.textContent = category.title;
+            contentDesc.textContent = category.desc;
+
+            // 渲染卡片
+            docGrid.innerHTML = category.items.map((item, index) => `
+                <a class="doc-card" href="#" style="animation-delay: ${index * 0.05}s">
+                    <div class="doc-card-icon">${item.icon}</div>
+                    <h3 class="doc-card-title">${item.title}</h3>
+                    <p class="doc-card-desc">${item.desc}</p>
+                </a>
+            `).join('');
+        }
+
+        // 切换分类
+        function switchCategory(categoryId) {
+            currentCategory = categoryId;
+            renderNavList();
+            renderDocCards(categoryId);
+        }
+
+        // 打开菜单
+        function openMenu() {
+            sidebar.classList.add('open');
+            overlay.classList.add('active');
+            menuToggle.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 关闭菜单
+        function closeMenu() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            menuToggle.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // 事件监听
+        menuToggle.addEventListener('click', () => {
+            if (sidebar.classList.contains('open')) {
+                closeMenu();
+            } else {
+                openMenu();
+            }
+        });
+
+        overlay.addEventListener('click', closeMenu);
+
+        // 窗口大小变化时重置状态
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                closeMenu();
+            }
+        });
+
+        // ESC 键关闭菜单
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+                closeMenu();
+            }
+        });
+
+        // 初始化
+        renderNavList();
+        renderDocCards(currentCategory);
+    </script>
+</body>
+</html>
